@@ -20,6 +20,11 @@ using System.Runtime.InteropServices;
 using log4net;
 using UsersMicroService.Entities;
 using UsersMicroService.ViewModels;
+using System.Net.Http;
+using Newtonsoft.Json;
+using System.Net.Http.Headers;
+using Microsoft.Extensions.Configuration;
+
 
 namespace UsersMicroService.Services
 {
@@ -28,46 +33,32 @@ namespace UsersMicroService.Services
     {
         private readonly ReipushContext _reipushcontext;
         private static readonly ILog log = LogManager.GetLogger(typeof(UserService));
+        private static readonly HttpClient HttpClient = new HttpClient();
 
+        private string microservicBaseUrl = string.Empty;
         public UserService(ReipushContext context)
         {
             _reipushcontext = context;
         }
 
-        //public async Task<List<User>> GetAllUsers()
-        //{
-        //    var iUsers = await  _reipushcontext.User
-        //                        .FromSqlRaw("REIPUSH_GETUSERS")
-        //                        .ToArrayAsync();
 
-        //    return iUsers.ToList();
-        //}
-        //public User GetUserById(viUserId iuser)
-        //{
-        //    var rUser =  _reipushcontext.User
-        //                .FromSqlRaw("REIPUSH_GETUSERBYID @UserId",
-        //                 new  SqlParameter("UserId", iuser.UserId))
-        //                .AsEnumerable()
-        //                .FirstOrDefault();
-
-        //    return rUser;
-        //}
 
         public User GetUserByEmail(string iemail)
         {
             User rUser = new User();
 
-            try {
-                 rUser = _reipushcontext.User
-                            .FromSqlRaw("DoesEmailExit @Email",
-                             new SqlParameter("Email", iemail))
-                            .AsEnumerable()
-                            .FirstOrDefault();
+            try
+            {
+                rUser = _reipushcontext.User
+                           .FromSqlRaw("DoesEmailExit @Email",
+                            new SqlParameter("Email", iemail))
+                           .AsEnumerable()
+                           .FirstOrDefault();
 
             }
             catch (Exception e)
             {
-                log.Error(e);    
+                log.Error(e);
             }
             return rUser;
         }
@@ -84,14 +75,16 @@ namespace UsersMicroService.Services
 
                 var tUser = _reipushcontext.User
                    .Where(u => u.Email == iCred.Email)
-                   .Select(u => new User(){
+                   .Select(u => new User()
+                   {
                        PasswordHash = u.PasswordHash,
                        PasswordSalt = u.PasswordSalt
                    }).ToArray();
-                  
+
 
                 //  Convert the Current Password to Hash via the Salt key
-                if (iCred.Password != ""){
+                if (iCred.Password != "")
+                {
                     iuser.PasswordSalt = CreateSalt(5);
                     iuser.PasswordHash = CreatePasswordHash(iCred.Password, tUser[0].PasswordSalt);
                 }
@@ -127,31 +120,14 @@ namespace UsersMicroService.Services
         }
 
 
-        public User CreateUser(User iuser)
+        public string GenerateUserToken(User user, string tokenSecret)
         {
 
-
-            var vUser = _reipushcontext.User.FromSqlRaw("REIPUSH_CREATEUSER  @Email, @FirstName, @LastName, @MobileNumber, @UserType", 
-                         new SqlParameter("Email", iuser.Email),
-                         new SqlParameter("FirstName", iuser.FirstName),
-                         new SqlParameter("LastName", iuser.LastName),
-                         new SqlParameter("MobileNumber", iuser.MobileNumber),
-                         new SqlParameter("UserType", iuser.UserType)
-                         )
-                        .AsEnumerable()
-                        .FirstOrDefault();
-
-            
-            return vUser;
-        }
-
-        public string GenerateUserToken(User user, string tokenSecret) {
-          
-            var result =  Helper.GenerateToken(user.UserId, user.Email, false, tokenSecret);
+            var result = Helper.GenerateToken(user.UserId, user.Email, false, tokenSecret);
             return result;
         }
 
-        public  string GenerateRefreshToken(int userID)
+        public string GenerateRefreshToken(int userID)
         {
             var randomNumber = new byte[32];
             using (var rng = RandomNumberGenerator.Create())
@@ -204,14 +180,14 @@ namespace UsersMicroService.Services
                 token = newJwtToken,
                 refreshToken = newRfreshToken
             };
-                 
+
         }
 
         public string GetSavedRefreshToken(string token, string seceret)
         {
             var principal = Helper.GetPrincipalFromExpiredToken(token, seceret);
             var sid = principal.Claims.Where(c => c.Type == ClaimTypes.Sid).Select(c => c.Value).SingleOrDefault();
-            return  GetRefreshToken(Convert.ToInt32(sid));
+            return GetRefreshToken(Convert.ToInt32(sid));
         }
 
         public string GetRefreshToken(int userID)
@@ -221,7 +197,7 @@ namespace UsersMicroService.Services
             return query.RefreshToken;
         }
 
-        public User CreateAccount(viEmailPwd iCred)
+        public User CreateUser(viEmailPwd iCred)
         {
 
 
@@ -229,19 +205,115 @@ namespace UsersMicroService.Services
             iuser.CreatedOn = DateTime.Now;
             iuser.UpdatedOn = DateTime.Now;
             iuser.Email = iCred.Email;
-            iuser.UserType = 0;
-            if (iCred.Password != ""){
-                iuser.PasswordSalt = CreateSalt(5);             
+            iuser.UserTypeId = 2;                   // This is set  by default to  2 - Standard User
+            iuser.IsActive = true;                     // Set the User to Active when creating
+            iuser.IsVerified = false;
+            if (iCred.Password != "")
+            {
+                iuser.PasswordSalt = CreateSalt(5);
                 iuser.PasswordHash = CreatePasswordHash(iCred.Password, iuser.PasswordSalt);
             }
 
-            User ruserId = _reipushcontext.User.FromSqlRaw("CreateAccount  @Email, @UserType, @PasswordHash, @PasswordSalt",
+
+            User ruserId = _reipushcontext.User.FromSqlRaw("CreateUser @Email, @UserTypeId, @IsActive, @IsVerified," +
+                                                            " @PasswordHash, @PasswordSalt",
                          new SqlParameter("Email", iuser.Email),
-                         new SqlParameter("UserType", iuser.UserType),
+                         new SqlParameter("UserTypeId", iuser.UserTypeId),
+                         new SqlParameter("IsActive", iuser.IsActive),
+                         new SqlParameter("IsVerified", iuser.IsVerified),
                          new SqlParameter("PasswordHash", iuser.PasswordHash),
                          new SqlParameter("PasswordSalt", iuser.PasswordSalt)
                          ).ToArray().FirstOrDefault();
-                        
+
+
+
+            return ruserId;
+        }
+
+
+        public bool CreateUserAccount(UserAccount iaccount)
+        {
+
+            try
+            {
+                iaccount.UpdatedUserId = iaccount.UserId;
+                iaccount.CreatedUserId = iaccount.UserId;
+                iaccount.AccountBalance = 0;
+
+                _reipushcontext.UserAccounts.Add(iaccount);
+                _reipushcontext.SaveChanges();
+
+
+
+                return true;
+
+            }
+            catch (Exception e)
+            {
+                log.Error(e);
+                return false;
+            }
+        }
+
+
+        public async Task<string> CreateAuthoritNetProfileAsync(string iemail)
+        {
+            string iAuthNetProfileid = string.Empty;
+            microservicBaseUrl = GetValueByName("PaymentMicorServiceURL");
+
+            try
+            {
+
+                var postData = new
+                {
+                    email = iemail
+                };
+
+                var serializedRequest = JsonConvert.SerializeObject(postData);
+
+                var requestBody = new StringContent(serializedRequest);
+                requestBody.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                using (var response = await HttpClient.PostAsync(microservicBaseUrl, requestBody))
+                {
+                    if (!response.IsSuccessStatusCode)
+                        return response.StatusCode.ToString();
+
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var deserializedResponse = JsonConvert.DeserializeObject<string>(responseContent);
+                    iAuthNetProfileid = deserializedResponse;
+                }
+            }
+            catch (Exception e)
+            {
+                log.Error(e);
+            }
+            return iAuthNetProfileid;
+        }
+
+        public User StorePaymentInfo(viEmailPwd iCred)
+        {
+
+
+            User iuser = new User();
+            iuser.CreatedOn = DateTime.Now;
+            iuser.UpdatedOn = DateTime.Now;
+            iuser.Email = iCred.Email;
+            iuser.UserTypeId = 2;                   // This is set  by default to  2 - Standard User
+            if (iCred.Password != "")
+            {
+                iuser.PasswordSalt = CreateSalt(5);
+                iuser.PasswordHash = CreatePasswordHash(iCred.Password, iuser.PasswordSalt);
+            }
+
+
+            User ruserId = _reipushcontext.User.FromSqlRaw("CreateUser  @Email, @UserTypeId, @PasswordHash, @PasswordSalt",
+                         new SqlParameter("Email", iuser.Email),
+                         new SqlParameter("UserTypeId", iuser.UserTypeId),
+                         new SqlParameter("PasswordHash", iuser.PasswordHash),
+                         new SqlParameter("PasswordSalt", iuser.PasswordSalt)
+                         ).ToArray().FirstOrDefault();
+
 
 
             return ruserId;
@@ -308,7 +380,8 @@ namespace UsersMicroService.Services
             try
             {
                 VoiceNote vnote = await Helper.CreateVoiceNote(userid, iform);
-                if (vnote != null){
+                if (vnote != null)
+                {
                     _reipushcontext.VoiceNote.Add(vnote);
                     _reipushcontext.SaveChanges();
 
@@ -331,7 +404,7 @@ namespace UsersMicroService.Services
             {
                 rVoiceNotes = (List<VoiceNote>)_reipushcontext.VoiceNote
                     .Where(v => v.UserId == userid);
-                    
+
 
             }
             catch (Exception e)
@@ -361,12 +434,35 @@ namespace UsersMicroService.Services
         private string CreatePasswordHash(string password, string salt)
         {
             //return FormsAuthentication.HashPasswordForStoringInConfigFile(password + salt, "SHA1");
-          return  Helper.GetHash(password + salt, "SHA1");
+            return Helper.GetHash(password + salt, "SHA1");
         }
 
+        public static IConfiguration AppSetting { get; }
+
+        public string GetValueByName(string ivalue)
+        {
+            try
+            {
+                GlobalSettingItem rvalue = new GlobalSettingItem();
+
+                if (ivalue == null)
+                {
+                    return null;
+                }
+
+                ivalue = _reipushcontext.GlobalSettings
+                         .FirstOrDefault(u => u.Name == ivalue).value;
+            }
+            catch (Exception e)
+            {
+                log.Error(e);
+            }
+
+            return ivalue;
+        }
     }
 
- 
+
 
 
 }

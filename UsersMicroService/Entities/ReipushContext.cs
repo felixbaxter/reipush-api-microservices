@@ -13,6 +13,8 @@ namespace UsersMicroService.Entities
             : base(options)
         {
         }
+        public virtual DbSet<UsersMicroService.Entities.GlobalSettingItem> GlobalSettings { get; set; }
+        public virtual DbSet<UsersMicroService.Entities.UserAccount> UserAccounts { get; set; }
 
         public virtual DbSet<UsersMicroService.Entities.User> User { get; set; }
         public virtual DbSet<UsersMicroService.Entities.voUser> voUser { get; set; }

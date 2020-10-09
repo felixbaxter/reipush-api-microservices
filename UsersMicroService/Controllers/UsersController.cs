@@ -30,144 +30,7 @@ namespace UsersMicroService.Controllers
 
 
 
-        //// GET: api/Users/GetAll
-        //[HttpGet("GetAll")]
-        //public async Task<ActionResult<IEnumerable<User>>> GetUser()
-        //{
-
-        //    Services.UserService _UsersService = new UserService(_context);
-
-        //    // This is utilizing Store Procedures
-        //    return await _UsersService.GetAllUsers();
-           
-        //    // This is using the Entity Framework
-        //    //return await _context.User.ToListAsync();
-        //}
-
-        //// GET: api/Users/GetById
-        //[HttpPost("GetById")]
-        //[ProducesResponseType(StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //public  ActionResult<User> GetUser(viUserId iuser)
-        //{
-        //    Services.UserService _UsersService = new UserService(_context);
-
-        //    var user =  _UsersService.GetUserById(iuser);
-            
-        //    //var user = await _context.User.FindAsync(id);
-
-        //    if (user == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return user;
-        //}
-
-
-        //// GET: api/Users/GetById
-        //[HttpPost("GetFullNameById")]
-        //[ProducesResponseType(StatusCodes.Status200OK)]
-        //[ProducesResponseType(StatusCodes.Status404NotFound)]
-        //public ActionResult<voUser> GetUserFN(viUserId iuser)
-        //{
-        //    Services.UserService _UsersService = new UserService(_context);
-
-        //    var user = _UsersService.GetUserCombineNameById(iuser);
-
-        //    //var user = await _context.User.FindAsync(id);
-
-        //    if (user == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return user;
-        //}
-
-
-
-        //// PUT: api/Users/5
-        //// To protect from overposting attacks, enable the specific properties you want to bind to, for
-        //// more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        //[HttpPut("{id}")]
-        //public async Task<IActionResult> PutUser(int id, User user)
-        //{
-        //    if (id != user.UserId)
-        //    {
-        //        return BadRequest();
-        //    }
-
-        //    _context.Entry(user).State = EntityState.Modified;
-
-        //    try
-        //    {
-        //        await _context.SaveChangesAsync();
-        //    }
-        //    catch (DbUpdateConcurrencyException)
-        //    {
-        //        if (!UserExists(id))
-        //        {
-        //            return NotFound();
-        //        }
-        //        else
-        //        {
-        //            throw;
-        //        }
-        //    }
-
-        //    return NoContent();
-        //}
-
-        //// POST: api/Users
-        //// To protect from overposting attacks, enable the specific properties you want to bind to, for
-        //// more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        //[HttpPost("AddUser")]
-        //public  ActionResult<User> PostUser(User iuser)
-        //{
-        //    //_context.User.Add(user);
-        //    //await _context.SaveChangesAsync();
-
-        //    Services.UserService _UsersService = new UserService(_context);
-
-        //    var user = _UsersService.CreateUser(iuser);
-
-        //    if (user == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return user;
-
-        //    //  return CreatedAtAction("GetUser", new { id = user.UserId }, user);
-        //}
-
-        //// DELETE: api/Users/5
-        //[HttpDelete("{id}")]
-        //public async Task<ActionResult<User>> DeleteUser(int id)
-        //{
-        //    var user = await _context.User.FindAsync(id);
-        //    if (user == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    _context.User.Remove(user);
-        //    await _context.SaveChangesAsync();
-
-        //    return user;
-        //}
-
-        //private bool UserExists(int id)
-        //{
-        //    return _context.User.Any(e => e.UserId == id);
-        //}
-
-
-        // GET: api/Users/emailaddressexist
-
-
-        [HttpPost("emailaddressexist")]
+        [HttpPost("doesemailexist")]
         [ApiVersion("1")]
         [Produces("application/json")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -198,36 +61,53 @@ namespace UsersMicroService.Controllers
         }
 
 
-
         // GET: api/Users/createaccount
-        [HttpPost("createaccount")]
+        [HttpPost("createaccountpaymentinfo")]
         [ApiVersion("1")]
         [Produces("application/json")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<User> CreateAccount(viEmailPwd iCred)
+        public ActionResult<User> CreateUserProfile(viUserAccountPaymentInfo iAcct_PaymentInfo)
         {
             Services.UserService _UsersService = new UserService(_context);
             User user;
-            
+
             try
             {
                 // Verify the email address does not exist.
-                user = _UsersService.GetUserByEmail(iCred.Email);                           
-                if (user != null) {
+                user = _UsersService.GetUserByEmail(iAcct_PaymentInfo.Email);
+                if (user != null)
+                {
                     return BadRequest("This email address already exist in our system.");
                 }
 
-                user = _UsersService.CreateAccount(iCred);
+
+                // Check Card with Authorize.NET
+                // -- This will be done in the PaymentsMicroService
+                // --  If the users credit card is valid we will continue and add the user account
+
+
+                user = _UsersService.CreateUser(new viEmailPwd
+                {
+                    Email = iAcct_PaymentInfo.Email,
+                    Password = iAcct_PaymentInfo.Password
+                }
+                                                );
 
                 if (user != null)
                 {
                     viUserAccess uAccess = new viUserAccess();
-                    uAccess.UserId = user.UserId;                
+                    uAccess.UserId = user.UserId;
                     uAccess.refreshAccesToken.token = _UsersService.GenerateUserToken(user, _config.GetValue<string>("TokenSecretKey"));
                     uAccess.refreshAccesToken.refreshToken = _UsersService.GenerateRefreshToken(user.UserId);
                     return Ok(uAccess);
                 }
+
+
+                // Call the PaymentMicro Service to add the UserPaymentInfo 
+
+
+
 
             }
             catch (Exception e)
@@ -239,7 +119,74 @@ namespace UsersMicroService.Controllers
         }
 
 
-        [HttpPost("authenticate")]
+
+        // GET: api/Users/createaccount
+        [HttpPost("createuser")]
+        [ApiVersion("1")]
+        [Produces("application/json")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<bool>> CreateUserAsync(viEmailPwd iCred)
+        {
+            Services.UserService _UsersService = new UserService(_context);
+            User user;
+
+
+            try
+            {
+                // Verify the email address does not exist.
+                user = _UsersService.GetUserByEmail(iCred.Email);
+                if (user != null)
+                {
+                    return BadRequest("This email address already exist in our system.");
+                }
+
+                user = _UsersService.CreateUser(iCred);
+
+                if (user == null)
+                {
+
+                }
+                else
+                {
+                    // Get password tokens
+                    viUserAccess uAccess = new viUserAccess();
+                    uAccess.UserId = user.UserId;
+                    uAccess.refreshAccesToken.token = _UsersService.GenerateUserToken(user, _config.GetValue<string>("TokenSecretKey"));
+                    uAccess.refreshAccesToken.refreshToken = _UsersService.GenerateRefreshToken(user.UserId);
+
+                    // Create Authorize.NET Customer Profile
+                    string AuthNetProfileId = await _UsersService.CreateAuthoritNetProfileAsync(iCred.Email);
+                    if (AuthNetProfileId != null)
+                    {
+
+                        // Create  User Account Shell
+
+                    }
+                    else
+                    {
+                        return BadRequest("No Authorize.NET Profile Created.");
+                    }
+
+                    UserAccount x = new UserAccount();
+                    x.UserId = user.UserId;
+                    x.AuthNetProfileId = AuthNetProfileId;
+
+                    bool IsUserCreated = _UsersService.CreateUserAccount(x);
+
+                }
+
+            }
+            catch (Exception e)
+            {
+                log.Error(e);
+                return BadRequest(e.Message.ToString());
+            }
+            return Ok();
+        }
+
+
+        [HttpPost("authenticateuser")]
         [ApiVersion("1")]
         [Produces("application/json")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -252,14 +199,16 @@ namespace UsersMicroService.Controllers
             User user = new User();
             try
             {
-              
-                if ((creds.Email==null) || (creds.Password == null)){
+
+                if ((creds.Email == null) || (creds.Password == null))
+                {
                     return BadRequest("Username and Password must be supplied");
                 }
 
                 // Authentic the user with the email address and password.
                 user.UserId = _UsersService.AuthenticateUser(creds);
-                if (user.UserId< 1){
+                if (user.UserId < 1)
+                {
                     return NotFound("Invalid Username or Password");
                 }
 
@@ -268,7 +217,7 @@ namespace UsersMicroService.Controllers
                 {
                     viUserAccess uAccess = new viUserAccess();
                     uAccess.UserId = user.UserId;
-                    uAccess.refreshAccesToken.token = _UsersService.GenerateUserToken(user, _config.GetValue<string>("TokenSecretKey"));  
+                    uAccess.refreshAccesToken.token = _UsersService.GenerateUserToken(user, _config.GetValue<string>("TokenSecretKey"));
                     uAccess.refreshAccesToken.refreshToken = _UsersService.GenerateRefreshToken(user.UserId);
                     return Ok(uAccess);
                 }
@@ -285,7 +234,7 @@ namespace UsersMicroService.Controllers
 
 
 
-        [HttpPost("refreshtoken")]
+        [HttpPost("getrefreshtoken")]
         [ApiVersion("1")]
         [Produces("application/json")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -305,17 +254,19 @@ namespace UsersMicroService.Controllers
 
                 // Authentic the user with the email address and password.
                 string savedRefreshToken = _UsersService.GetSavedRefreshToken(creds.token, _config.GetValue<string>("TokenSecretKey"));
-                if (savedRefreshToken == null) {
+                if (savedRefreshToken == null)
+                {
                     return NotFound("Invalid Token or Refresh Token");
                 }
 
-                if (savedRefreshToken != creds.refreshToken)   {
+                if (savedRefreshToken != creds.refreshToken)
+                {
                     return NotFound("Invalid Refresh Token");
 
                 }
-                    RefreshAccessToken uToken = new  RefreshAccessToken();
-                    uToken = _UsersService.GenerateRefreshTokenFromPrincipal(creds.token, _config.GetValue<string>("TokenSecretKey"));
-                    return Ok(uToken);
+                RefreshAccessToken uToken = new RefreshAccessToken();
+                uToken = _UsersService.GenerateRefreshTokenFromPrincipal(creds.token, _config.GetValue<string>("TokenSecretKey"));
+                return Ok(uToken);
 
             }
             catch (Exception e)
@@ -339,7 +290,8 @@ namespace UsersMicroService.Controllers
             try
             {
 
-                if ((iemail == null)){
+                if ((iemail == null))
+                {
                     return BadRequest("Invalid Email Address");
                 }
 
@@ -483,20 +435,23 @@ namespace UsersMicroService.Controllers
         public async Task<IActionResult> AddVoiceNote(int userid, IFormFile iform)
         {
             Services.UserService _UserService = new UserService(_context);
-            
+
             bool validUser = false;
 
             try
             {
-                if (userid > 0){
-                    voUser rvalue =  _UserService.GetUserCombineNameById(new viUserId { UserId = userid.ToString() });
+                if (userid > 0)
+                {
+                    voUser rvalue = _UserService.GetUserCombineNameById(new viUserId { UserId = userid.ToString() });
                     if (rvalue != null) { validUser = true; }
                 }
-                if (!validUser) {
+                if (!validUser)
+                {
                     return BadRequest("You must provide all required data to add a voicenote.");
                 }
 
-                if (!Helper.IsValidFileExtention(iform.FileName,0)){
+                if (!Helper.IsValidFileExtention(iform.FileName, 0))
+                {
                     return BadRequest("The file type you are trying to upload is not valid.");
 
                 }
@@ -514,6 +469,35 @@ namespace UsersMicroService.Controllers
             {
                 log.Error(e);
                 return BadRequest(e.Message.ToString());
+            }
+            return Ok();
+        }
+
+        [HttpPost("createpaymentinformation")]
+        [ApiVersion("1")]
+        [Produces("application/json")]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+
+        public ActionResult CreatePaymentInfo(viUserAccountPaymentInfo viPayinfo)
+        {
+            UserService _UsersService = new UserService(_context);
+            User user;
+            try
+            {
+                // user = _UsersService.GetUserByEmail(iEmail.Email);
+
+
+                //if (user == null)
+                //{
+                //    return NotFound("The Email Address Was Not Found");
+                //}
+
+            }
+            catch (Exception e)
+            {
+                log.Error(e);
+                return BadRequest();
             }
             return Ok();
         }

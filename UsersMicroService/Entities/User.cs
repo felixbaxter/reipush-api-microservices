@@ -18,7 +18,10 @@ namespace UsersMicroService.Entities
 
         [Key]
         public int UserId { get; set; }
+        public bool IsVerified { get; set; }
         public string Email { get; set; }
+        public int UserTypeId { get; set; }
+        public bool IsActive { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string MobileNumber { get; set; }
