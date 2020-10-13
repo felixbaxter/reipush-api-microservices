@@ -37,13 +37,13 @@ namespace UsersMicroService.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
 
-        public ActionResult<User> EmailExist(viEmail iEmail)
+        public ActionResult<bool> EmailExist(viEmail iEmail)
         {
             UserService _UsersService = new UserService(_context);
-            User user;
+
             try
             {
-                user = _UsersService.GetUserByEmail(iEmail.Email);
+               User user = _UsersService.GetUserByEmail(iEmail.Email);
 
 
                 if (user == null)
@@ -57,51 +57,43 @@ namespace UsersMicroService.Controllers
                 log.Error(e);
                 return BadRequest(e.Message.ToString());
             }
-            return Ok(user);
+            return Ok(true);
         }
 
 
         // GET: api/Users/createaccount
-        [HttpPost("createaccountpaymentinfo")]
+        [HttpPost("createbillinginfo")]
         [ApiVersion("1")]
         [Produces("application/json")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<User> CreateUserProfile(viUserAccountPaymentInfo iAcct_PaymentInfo)
+        public ActionResult<User> CreateBillingInformation(viBillingInformation iAcct_PaymentInfo)
         {
             Services.UserService _UsersService = new UserService(_context);
-            User user;
 
             try
             {
-                // Verify the email address does not exist.
-                user = _UsersService.GetUserByEmail(iAcct_PaymentInfo.Email);
-                if (user != null)
-                {
-                    return BadRequest("This email address already exist in our system.");
+               // Validate the User Account
+                voUserAccountVerify useracct = _UsersService.GetUserAccountByEmail(iAcct_PaymentInfo.Email);
+
+                if (useracct == null){
+                    return BadRequest("This email address does not existxist in our system.");
                 }
 
+                // Verify the payment source and create records.
+                // -- Authorize.NET 
+                // -- PaymentProfile
 
-                // Check Card with Authorize.NET
-                // -- This will be done in the PaymentsMicroService
-                // --  If the users credit card is valid we will continue and add the user account
+                                                
 
-
-                user = _UsersService.CreateUser(new viEmailPwd
-                {
-                    Email = iAcct_PaymentInfo.Email,
-                    Password = iAcct_PaymentInfo.Password
-                }
-                                                );
-
-                if (user != null)
-                {
-                    viUserAccess uAccess = new viUserAccess();
-                    uAccess.UserId = user.UserId;
-                    uAccess.refreshAccesToken.token = _UsersService.GenerateUserToken(user, _config.GetValue<string>("TokenSecretKey"));
-                    uAccess.refreshAccesToken.refreshToken = _UsersService.GenerateRefreshToken(user.UserId);
-                    return Ok(uAccess);
-                }
+                //if (user != null)
+                //{
+                //    viUserAccess uAccess = new viUserAccess();
+                //    uAccess.UserId = user.UserId;
+                //    uAccess.refreshAccesToken.token = _UsersService.GenerateUserToken(user, _config.GetValue<string>("TokenSecretKey"));
+                //    uAccess.refreshAccesToken.refreshToken = _UsersService.GenerateRefreshToken(user.UserId);
+                //    return Ok(uAccess);
+                //}
 
 
                 // Call the PaymentMicro Service to add the UserPaymentInfo 
@@ -115,7 +107,7 @@ namespace UsersMicroService.Controllers
                 log.Error(e);
                 return BadRequest(e.Message.ToString());
             }
-            return Ok(user);
+            return Ok();
         }
 
 
@@ -145,7 +137,7 @@ namespace UsersMicroService.Controllers
 
                 if (user == null)
                 {
-
+                    return BadRequest("Error Creating User Account");
                 }
                 else
                 {
@@ -156,17 +148,15 @@ namespace UsersMicroService.Controllers
                     uAccess.refreshAccesToken.refreshToken = _UsersService.GenerateRefreshToken(user.UserId);
 
                     // Create Authorize.NET Customer Profile
+
                     string AuthNetProfileId = await _UsersService.CreateAuthoritNetProfileAsync(iCred.Email);
-                    if (AuthNetProfileId != null)
-                    {
 
-                        // Create  User Account Shell
-
-                    }
-                    else
-                    {
+                    if (AuthNetProfileId == null)  {
                         return BadRequest("No Authorize.NET Profile Created.");
+
                     }
+  
+                    // Create Account Record
 
                     UserAccount x = new UserAccount();
                     x.UserId = user.UserId;
@@ -182,7 +172,7 @@ namespace UsersMicroService.Controllers
                 log.Error(e);
                 return BadRequest(e.Message.ToString());
             }
-            return Ok();
+            return Ok(true);
         }
 
 
@@ -473,34 +463,7 @@ namespace UsersMicroService.Controllers
             return Ok();
         }
 
-        [HttpPost("createpaymentinformation")]
-        [ApiVersion("1")]
-        [Produces("application/json")]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-
-        public ActionResult CreatePaymentInfo(viUserAccountPaymentInfo viPayinfo)
-        {
-            UserService _UsersService = new UserService(_context);
-            User user;
-            try
-            {
-                // user = _UsersService.GetUserByEmail(iEmail.Email);
-
-
-                //if (user == null)
-                //{
-                //    return NotFound("The Email Address Was Not Found");
-                //}
-
-            }
-            catch (Exception e)
-            {
-                log.Error(e);
-                return BadRequest();
-            }
-            return Ok();
-        }
+    
 
     }
 }

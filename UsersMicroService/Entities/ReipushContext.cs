@@ -15,12 +15,12 @@ namespace UsersMicroService.Entities
         }
         public virtual DbSet<UsersMicroService.Entities.GlobalSettingItem> GlobalSettings { get; set; }
         public virtual DbSet<UsersMicroService.Entities.UserAccount> UserAccounts { get; set; }
-
         public virtual DbSet<UsersMicroService.Entities.User> User { get; set; }
         public virtual DbSet<UsersMicroService.Entities.voUser> voUser { get; set; }
         public virtual DbSet<UsersMicroService.Entities.VoiceNote> VoiceNote { get; set; }
         public virtual DbSet<UsersMicroService.Entities.UserRefreshToken> UserRefreshTokens { get; set; }
         public virtual DbSet<UsersMicroService.Entities.Tag> Tag { get; set; }
+        public virtual DbSet<UsersMicroService.Entities.UserAccountPayment>  UserAccountPayments { get; set; }
 
     }
 }

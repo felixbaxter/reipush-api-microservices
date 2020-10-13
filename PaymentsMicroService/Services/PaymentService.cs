@@ -369,57 +369,57 @@ namespace PaymentsMicroService.Services
             return response;
         }
 
-        //public AuthorizeNetResponse CIM_CreateCustomerPaymentProfile(string customerprofileId, PaymentMethod paymentMethod, bool testTransaction)
-        //{
-        //    ApiOperationBase<ANetApiRequest, ANetApiResponse>.RunEnvironment = (TestMode) ? AuthorizeNet.Environment.SANDBOX : AuthorizeNet.Environment.PRODUCTION;
-        //    ApiOperationBase<ANetApiRequest, ANetApiResponse>.MerchantAuthentication = new merchantAuthenticationType()
-        //    {
-        //        name = ApiLogin,
-        //        ItemElementName = ItemChoiceType.transactionKey,
-        //        Item = TransactionKey,
-        //    };
+        public AuthorizeNetResponse CIM_CreateCustomerPaymentProfile(string customerprofileId, PaymentMethod paymentMethod, bool testTransaction)
+        {
+            ApiOperationBase<ANetApiRequest, ANetApiResponse>.RunEnvironment = (TestMode) ? AuthorizeNet.Environment.SANDBOX : AuthorizeNet.Environment.PRODUCTION;
+            ApiOperationBase<ANetApiRequest, ANetApiResponse>.MerchantAuthentication = new merchantAuthenticationType()
+            {
+                name = ApiLogin,
+                ItemElementName = ItemChoiceType.transactionKey,
+                Item = TransactionKey,
+            };
 
-        //    var creditCard = new creditCardType
-        //    {
-        //        cardNumber = paymentMethod.CardNumber,
-        //        expirationDate = paymentMethod.CardExpYear + "-" + paymentMethod.CardExpMonth.ToString().PadLeft(2, '0'),
-        //        cardCode = paymentMethod.CardCode
-        //    };
+            var creditCard = new creditCardType
+            {
+                cardNumber = paymentMethod.CardNumber,
+                expirationDate = paymentMethod.CardExpYear + "-" + paymentMethod.CardExpMonth.ToString().PadLeft(2, '0'),
+                cardCode = paymentMethod.CardCode
+            };
 
-        //    var pmtType = new paymentType { Item = creditCard };
-        //    var pmtProfile = new customerPaymentProfileType
-        //    {
-        //        payment = pmtType,
-        //        billTo = new customerAddressType()
-        //        {
-        //            firstName = paymentMethod.FirstName,
-        //            lastName = paymentMethod.LastName,
-        //            address = paymentMethod.StreetAddress,
-        //            city = paymentMethod.City,
-        //            state = paymentMethod.State,
-        //            zip = paymentMethod.Zip,
-        //            country = paymentMethod.CountryName
-        //        }
-        //    };
+            var pmtType = new paymentType { Item = creditCard };
+            var pmtProfile = new customerPaymentProfileType
+            {
+                payment = pmtType,
+                billTo = new customerAddressType()
+                {
+                    firstName = paymentMethod.FirstName,
+                    lastName = paymentMethod.LastName,
+                    address = paymentMethod.StreetAddress,
+                    city = paymentMethod.City,
+                    state = paymentMethod.State,
+                    zip = paymentMethod.Zip,
+                    country = paymentMethod.CountryName
+                }
+            };
 
-        //    var request = new createCustomerPaymentProfileRequest()
-        //    {
-        //        customerProfileId = customerprofileId,
-        //        paymentProfile = pmtProfile,
-        //        validationMode = testTransaction ? validationModeEnum.liveMode : validationModeEnum.none
-        //    };
+            var request = new createCustomerPaymentProfileRequest()
+            {
+                customerProfileId = customerprofileId,
+                paymentProfile = pmtProfile,
+                validationMode = testTransaction ? validationModeEnum.liveMode : validationModeEnum.none
+            };
 
-        //    // instantiate the controller that will call the service
-        //    var controller = new createCustomerPaymentProfileController(request);
-        //    controller.Execute();
+            // instantiate the controller that will call the service
+            var controller = new createCustomerPaymentProfileController(request);
+            controller.Execute();
 
-        //    //Initiate our custom class to return the response
-        //    var response = new AuthorizeNetResponse() { CreateCustomerPaymentProfileResponse = controller.GetApiResponse() };
-        //    response.ResponseType = response.CreateCustomerPaymentProfileResponse.messages.resultCode;
-        //    response.ResponseCode = response.CreateCustomerPaymentProfileResponse.messages.message[0].code;
-        //    response.ResponseText = response.CreateCustomerPaymentProfileResponse.messages.message[0].text;
-        //    return response;
-        //}
+            //Initiate our custom class to return the response
+            var response = new AuthorizeNetResponse() { CreateCustomerPaymentProfileResponse = controller.GetApiResponse() };
+            response.ResponseType = response.CreateCustomerPaymentProfileResponse.messages.resultCode;
+            response.ResponseCode = response.CreateCustomerPaymentProfileResponse.messages.message[0].code;
+            response.ResponseText = response.CreateCustomerPaymentProfileResponse.messages.message[0].text;
+            return response;
+        }
 
         public AuthorizeNetResponse CIM_GetCustomerPaymentProfile(string customerprofileId, string customerpaymentProfileId)
         {
@@ -641,6 +641,7 @@ namespace PaymentsMicroService.Services
 
             return ivalue;
         }
+
 
 
     }

@@ -15,12 +15,6 @@ namespace PaymentsMicroService.Entities
         }
 
         public virtual DbSet<PaymentsMicroService.Entities.GlobalSettingItem> GlobalSettings { get; set; }
-        //public virtual DbSet<PropertiesMicroService.Entities.Property>  Property { get; set; }
-        //public virtual DbSet<PropertiesMicroService.Entities.PropertyTag> PropertyTag { get; set; }
-        //public virtual DbSet<PropertiesMicroService.Entities.PropertyVoiceNote> PropertyVoiceNote { get; set; }
-        //public virtual DbSet<PropertiesMicroService.Entities.PropertyPhoto> PropertyPhoto { get; set; }
-        //public virtual DbSet<PropertiesMicroService.Entities.VoiceNote> VoiceNote { get; set; }
-        //public virtual DbSet<PropertiesMicroService.Entities.Tag> Tag { get; set; }
 
     }
 }

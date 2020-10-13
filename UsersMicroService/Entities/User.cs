@@ -18,19 +18,17 @@ namespace UsersMicroService.Entities
 
         [Key]
         public int UserId { get; set; }
-        public bool IsVerified { get; set; }
+        public bool? IsVerified { get; set; }
         public string Email { get; set; }
         public int UserTypeId { get; set; }
-        public bool IsActive { get; set; }
-        public string? FirstName { get; set; }
-        public string? LastName { get; set; }
-        public string MobileNumber { get; set; }
-        public Int16 UserType { get; set; }
+        public bool? IsActive { get; set; }
+        public int? DeactivatedById { get; set; }
+        public DateTime? DeactivatedDate { get; set; }
         public DateTime CreatedOn { get; set; }
         public DateTime UpdatedOn { get; set; }
-        public DateTime? LastAnnouncementDate { get; set; }
         public string? PasswordSalt { get; set; }
         public string? PasswordHash { get; set; }
+        public DateTime? LastAnnouncementDate { get; set; }
     }
 }
 

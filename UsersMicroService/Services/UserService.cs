@@ -36,9 +36,11 @@ namespace UsersMicroService.Services
         private static readonly HttpClient HttpClient = new HttpClient();
 
         private string microservicBaseUrl = string.Empty;
+
         public UserService(ReipushContext context)
         {
             _reipushcontext = context;
+            microservicBaseUrl = GetValueByName("PaymentMicorServiceURL");
         }
 
 
@@ -61,6 +63,34 @@ namespace UsersMicroService.Services
                 log.Error(e);
             }
             return rUser;
+        }
+
+        public voUserAccountVerify GetUserAccountByEmail(string xemail)
+        {
+
+            voUserAccountVerify xreturn = new voUserAccountVerify();
+            try
+            {
+                    xreturn = (from u in _reipushcontext.User
+                                    join t in _reipushcontext.UserAccounts
+                                    on u.UserId equals t.UserId
+                                    where u.Email == xemail
+                                    select new voUserAccountVerify
+                                    {
+                                          AuthNetProfileId = t.AuthNetProfileId,
+                                          IsActive = u.IsActive,
+                                          IsVerified = u.IsVerified,
+                                          UserId = u.UserId
+                                    }).First();
+
+            }
+            catch (Exception e)
+            {
+                log.Error(e);
+                return xreturn;
+            }
+            return xreturn;
+
         }
 
 
@@ -259,8 +289,7 @@ namespace UsersMicroService.Services
         public async Task<string> CreateAuthoritNetProfileAsync(string iemail)
         {
             string iAuthNetProfileid = string.Empty;
-            microservicBaseUrl = GetValueByName("PaymentMicorServiceURL");
-
+            microservicBaseUrl = microservicBaseUrl + "createAuthorizeNetProfile";
             try
             {
 
@@ -289,6 +318,56 @@ namespace UsersMicroService.Services
                 log.Error(e);
             }
             return iAuthNetProfileid;
+        }
+
+
+        public async Task<string> VerifyPaymentSource(viBillingInformation xbill, voUserAccountVerify xacctinfo)
+        {
+            string iAuthNetPaymentProfileid = string.Empty;
+            microservicBaseUrl = microservicBaseUrl + "validatePaymentSource";
+
+            try
+            {
+
+                var postData = new
+                {
+                     AuthNetProfileid = xacctinfo.AuthNetProfileId,
+                     cardNumber = xbill.CardNumber,
+                     expMonth = xbill.ExpirationDate,
+                     expYear = xbill.ExpirationDate,
+                     ccv = xbill.CVC,
+                     amount = "0.01",
+                     invoiceHeader = "",
+                     description = "",
+                     orderid = "",
+                     firstname = xbill.CardHolderName,
+                     lastname = xbill.CardHolderName,
+                     addressline = xbill.BillingAddress1,
+                     city = xbill.BillingAddress2,
+                     state = xbill.BillingAddress2,
+                     zip = xbill.BillingAddress2
+                };
+
+                var serializedRequest = JsonConvert.SerializeObject(postData);
+
+                var requestBody = new StringContent(serializedRequest);
+                requestBody.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+                using (var response = await HttpClient.PostAsync(microservicBaseUrl, requestBody))
+                {
+                    if (!response.IsSuccessStatusCode)
+                        return response.StatusCode.ToString();
+
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    var deserializedResponse = JsonConvert.DeserializeObject<string>(responseContent);
+                    iAuthNetPaymentProfileid = deserializedResponse;
+                }
+            }
+            catch (Exception e)
+            {
+                log.Error(e);
+            }
+            return iAuthNetPaymentProfileid;
         }
 
         public User StorePaymentInfo(viEmailPwd iCred)

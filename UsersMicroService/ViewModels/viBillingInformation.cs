@@ -6,8 +6,9 @@ using System.Threading.Tasks;
 
 namespace UsersMicroService.ViewModels
 {
-    public class viUserAccountPaymentInfo
+    public class viBillingInformation
     {
+  
         [Required]
         public string Email { get; set; }
         [Required]
