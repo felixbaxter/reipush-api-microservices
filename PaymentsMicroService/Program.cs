@@ -18,10 +18,13 @@ namespace PaymentsMicroService
     {
         public static void Main(string[] args)
         {
+
             var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
             XmlConfigurator.Configure(logRepository, new FileInfo("log4net.config"));
 
             CreateHostBuilder(args).Build().Run();
+
+
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>

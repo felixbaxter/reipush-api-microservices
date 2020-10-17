@@ -24,13 +24,18 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using Microsoft.Extensions.Configuration;
-
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace UsersMicroService.Services
 {
 
     public class UserService
     {
+        private const string _Visa = "Visa";
+        private const string _MasterCard = "MasterCard";
+        private const string _AmericanExpress = "AmericanExpress";
+        private const string _DiscoverCard = "DiscoverCard";
+        private const string _Unknown = "Unknown";
         private readonly ReipushContext _reipushcontext;
         private static readonly ILog log = LogManager.GetLogger(typeof(UserService));
         private static readonly HttpClient HttpClient = new HttpClient();
@@ -328,24 +333,31 @@ namespace UsersMicroService.Services
 
             try
             {
+                int vlen;
+                string vmm, vyy;
 
-                var postData = new
+                vlen = xbill.ExpirationDate.Length;
+                vmm = xbill.ExpirationDate.Substring(0, 2);
+                vyy = xbill.ExpirationDate.Substring(vlen - 2);
+
+                viPaymentInformation postData = new viPaymentInformation
                 {
-                     AuthNetProfileid = xacctinfo.AuthNetProfileId,
+                     AuthNetProfileId = xacctinfo.AuthNetProfileId,
                      cardNumber = xbill.CardNumber,
-                     expMonth = xbill.ExpirationDate,
-                     expYear = xbill.ExpirationDate,
+                     expMonth = Convert.ToInt32(vmm),
+                     expYear = Convert.ToInt32(vyy),
                      ccv = xbill.CVC,
-                     amount = "0.01",
-                     invoiceHeader = "",
-                     description = "",
-                     orderid = "",
+                     amount = Convert.ToInt16(.1),
+                     invoiceHeader = "Reipush",
+                     description = "Reipush",
+                     orderId = Convert.ToInt32(1),
                      firstname = xbill.CardHolderName,
                      lastname = xbill.CardHolderName,
                      addressline = xbill.BillingAddress1,
                      city = xbill.BillingAddress2,
                      state = xbill.BillingAddress2,
                      zip = xbill.BillingAddress2
+                        
                 };
 
                 var serializedRequest = JsonConvert.SerializeObject(postData);
@@ -362,6 +374,29 @@ namespace UsersMicroService.Services
                     var deserializedResponse = JsonConvert.DeserializeObject<string>(responseContent);
                     iAuthNetPaymentProfileid = deserializedResponse;
                 }
+
+                UserAccountPayment xAcctPymt = new UserAccountPayment();
+                xAcctPymt.AuthNetPaymentProfileId = iAuthNetPaymentProfileid;
+
+                var xAcctPmt = new UserAccountPayment()
+                {
+                    AuthNetPaymentProfileId = iAuthNetPaymentProfileid,
+                    ExpirationMonth = Convert.ToInt32(xbill.ExpirationDate),   // Need to make these filed int
+                    ExpirationYear = Convert.ToInt32(xbill.ExpirationDate),      // Need to make these filed int
+                    IsDefault = true,
+                    Last6 = xbill.CardNumber.Substring(xbill.CardNumber.Length - 6),
+                    CardType = GetCreditCardType(xbill.CardNumber),
+                    UserId = xacctinfo.UserId,
+                    UseForSubscription = false
+                };
+                    
+                 
+                    _reipushcontext.UserAccountPayments.Add(xAcctPmt);
+                    _reipushcontext.SaveChanges();
+
+                
+                
+
             }
             catch (Exception e)
             {
@@ -539,6 +574,32 @@ namespace UsersMicroService.Services
 
             return ivalue;
         }
+
+        public string GetCreditCardType(string creditCardNumber)
+        {
+            if (string.IsNullOrWhiteSpace(creditCardNumber) || creditCardNumber.Length < 12)
+            {
+                return _Unknown;
+            }
+
+            var leadingDigit = creditCardNumber.Substring(0, 1);
+
+            switch (leadingDigit)
+            {
+                case "3":
+                    return _AmericanExpress;
+                case "4":
+                    return _Visa;
+                case "5":
+                    return _MasterCard;
+                case "6":
+                    return _DiscoverCard;
+                default:
+                    return _Unknown;
+            }
+        }
+
+
     }
 
 

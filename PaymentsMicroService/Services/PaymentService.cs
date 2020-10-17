@@ -36,93 +36,94 @@ namespace PaymentsMicroService.Services
 
         public AuthorizeNetResponse AIM_ChargeCreditCard(string cardNumber, int expMonth, int expYear, string ccv, decimal amount, string invoiceHeader, string description, int orderId, string firstname, string lastname, string addressline, string city, string state, string zip, transactionTypeEnum authOnlyOrCapture)
         {
-            ApiOperationBase<ANetApiRequest, ANetApiResponse>.RunEnvironment = (TestMode) ? AuthorizeNet.Environment.SANDBOX : AuthorizeNet.Environment.PRODUCTION;
-            ApiOperationBase<ANetApiRequest, ANetApiResponse>.MerchantAuthentication = new merchantAuthenticationType()
-            {
-                name = ApiLogin,
-                ItemElementName = ItemChoiceType.transactionKey,
-                Item = TransactionKey,
-            };
 
-            var creditCard = new creditCardType
-            {
-                cardNumber = cardNumber,
-                expirationDate = expMonth.ToString().PadLeft(2, '0') + expYear.ToString(),
-                cardCode = ccv
-            };
-
-            var custAddress = new customerAddressType();
-            if (firstname != "" && lastname != "")
-            {
-                custAddress.firstName = firstname;
-                custAddress.lastName = lastname;
-                custAddress.address = addressline;
-                custAddress.city = city;
-                custAddress.state = state;
-                custAddress.zip = zip;
-            }
-
-            var addon = "";
-            if (orderId > 0)
-            {
-                addon = addon + "-" + orderId.ToString();
-            }
-
-            var orderInfo = new orderType
-            {
-                invoiceNumber = invoiceHeader + addon,
-                description = description
-            };
-
-            //standard api call to retrieve response
-            var paymentType = new paymentType { Item = creditCard };
-
-            var transactionRequest = new transactionRequestType
-            {
-                transactionType = authOnlyOrCapture.ToString(),
-                amount = amount,
-                payment = paymentType,
-                order = orderInfo
-            };
-
-            if (custAddress.firstName != "")
-            {
-                transactionRequest.billTo = custAddress;
-            }
-
-            var request = new createTransactionRequest
-            {
-                transactionRequest = transactionRequest,
-            };
-
-            // instantiate the contoller that will call the service
-            var controller = new createTransactionController(request);
-            controller.Execute();
-
-            //Initiate our custom class to return the response
-            var response = new AuthorizeNetResponse() { CreateTransactionResponse = controller.GetApiResponse() };
-            response.ResponseType = response.CreateTransactionResponse.messages.resultCode;
-            response.ResponseCode = response.CreateTransactionResponse.messages.message[0].code;
-            response.ResponseText = response.CreateTransactionResponse.messages.message[0].text;
-            if (response.CreateTransactionResponse.transactionResponse != null && response.CreateTransactionResponse.transactionResponse.errors != null)
-            {
-                if (response.CreateTransactionResponse.transactionResponse.errors.Length > 0)
+                ApiOperationBase<ANetApiRequest, ANetApiResponse>.RunEnvironment = (TestMode) ? AuthorizeNet.Environment.SANDBOX : AuthorizeNet.Environment.PRODUCTION;
+                ApiOperationBase<ANetApiRequest, ANetApiResponse>.MerchantAuthentication = new merchantAuthenticationType()
                 {
-                    var s = "";
-                    foreach (var e in response.CreateTransactionResponse.transactionResponse.errors)
-                    {
-                        s += e.errorText + "|";
-                    }
-                    if (s.EndsWith("|"))
-                    {
-                        s = s.Remove(s.Length - 1, 1);
-                    }
-                    response.ResponseErrors = s;
+                    name = ApiLogin,
+                    ItemElementName = ItemChoiceType.transactionKey,
+                    Item = TransactionKey,
+                };
+                
+                var creditCard = new creditCardType
+                {
+                    cardNumber = cardNumber,
+                    expirationDate = expMonth.ToString().PadLeft(2, '0') + expYear.ToString(),
+                    cardCode = ccv
+                };
+
+                var custAddress = new customerAddressType();
+                if (firstname != "" && lastname != "")
+                {
+                    custAddress.firstName = firstname;
+                    custAddress.lastName = lastname;
+                    custAddress.address = addressline;
+                    custAddress.city = city;
+                    custAddress.state = state;
+                    custAddress.zip = zip;
                 }
-            }
+
+                var addon = "";
+                if (orderId > 0)
+                {
+                    addon = addon + "-" + orderId.ToString();
+                }
+
+                var orderInfo = new orderType
+                {
+                    invoiceNumber = invoiceHeader + addon,
+                    description = description
+                };
+
+                //standard api call to retrieve response
+                var paymentType = new paymentType { Item = creditCard };
+
+                var transactionRequest = new transactionRequestType
+                {
+                    transactionType = authOnlyOrCapture.ToString(),
+                    amount = amount,
+                    payment = paymentType,
+                    order = orderInfo
+                };
+
+                if (custAddress.firstName != "")
+                {
+                    transactionRequest.billTo = custAddress;
+                }
+
+                var request = new createTransactionRequest
+                {
+                    transactionRequest = transactionRequest,
+                };
+
+                // instantiate the contoller that will call the service
+                var controller = new createTransactionController(request);
+                controller.Execute();
+
+                //Initiate our custom class to return the response
+                var response = new AuthorizeNetResponse() { CreateTransactionResponse = controller.GetApiResponse() };
+                response.ResponseType = response.CreateTransactionResponse.messages.resultCode;
+                response.ResponseCode = response.CreateTransactionResponse.messages.message[0].code;
+                response.ResponseText = response.CreateTransactionResponse.messages.message[0].text;
+                    if (response.CreateTransactionResponse.transactionResponse != null && response.CreateTransactionResponse.transactionResponse.errors != null)
+                    {
+                        if (response.CreateTransactionResponse.transactionResponse.errors.Length > 0)
+                        {
+                            var s = "";
+                            foreach (var e in response.CreateTransactionResponse.transactionResponse.errors)
+                            {
+                                s += e.errorText + "|";
+                            }
+                            if (s.EndsWith("|"))
+                            {
+                                s = s.Remove(s.Length - 1, 1);
+                            }
+                            response.ResponseErrors = s;
+                        }
+                    }
+
 
             return response;
-
         }
 
         public AuthorizeNetResponse AIM_CIM_VoidCharge(string transactionId)

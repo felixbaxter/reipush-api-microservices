@@ -67,9 +67,11 @@ namespace UsersMicroService.Controllers
         [Produces("application/json")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public ActionResult<User> CreateBillingInformation(viBillingInformation iAcct_PaymentInfo)
+        public async Task<ActionResult<bool>> CreateBillingInformation(viBillingInformation iAcct_PaymentInfo)
         {
+            
             Services.UserService _UsersService = new UserService(_context);
+            bool BillingCreated = false;
 
             try
             {
@@ -84,21 +86,11 @@ namespace UsersMicroService.Controllers
                 // -- Authorize.NET 
                 // -- PaymentProfile
 
-                                                
+                 var paymentverfied = await _UsersService.VerifyPaymentSource(iAcct_PaymentInfo, useracct);
 
-                //if (user != null)
-                //{
-                //    viUserAccess uAccess = new viUserAccess();
-                //    uAccess.UserId = user.UserId;
-                //    uAccess.refreshAccesToken.token = _UsersService.GenerateUserToken(user, _config.GetValue<string>("TokenSecretKey"));
-                //    uAccess.refreshAccesToken.refreshToken = _UsersService.GenerateRefreshToken(user.UserId);
-                //    return Ok(uAccess);
-                //}
-
-
-                // Call the PaymentMicro Service to add the UserPaymentInfo 
-
-
+                if ((paymentverfied != null) && (paymentverfied!="BadRequest")){
+                    BillingCreated = true;
+                }
 
 
             }
@@ -107,7 +99,7 @@ namespace UsersMicroService.Controllers
                 log.Error(e);
                 return BadRequest(e.Message.ToString());
             }
-            return Ok();
+            return Ok(BillingCreated);
         }
 
 

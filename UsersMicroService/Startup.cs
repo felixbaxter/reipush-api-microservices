@@ -39,8 +39,8 @@ namespace UsersMicroService
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Version = "v1",
-                    Title = "PropertiesMicroService API",
-                    Description = "REIPUSH Properties MicroService API",
+                    Title = "UsersMicroService API",
+                    Description = "REIPUSH Users MicroService API",
                     TermsOfService = new Uri("https://example.com/terms"),
                     Contact = new OpenApiContact
                     {

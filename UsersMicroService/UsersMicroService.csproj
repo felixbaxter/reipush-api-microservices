@@ -7,6 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Json.Net" Version="1.0.23" />
     <PackageReference Include="log4net" Version="2.0.9" />
     <PackageReference Include="MicroKnights.Log4NetAdoNetAppender" Version="2.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Versioning" Version="4.1.1" />

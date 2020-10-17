@@ -23,8 +23,8 @@ namespace UsersMicroService.Entities
         public string AuthNetPaymentProfileId { get; set; }
         public string CardType { get; set; }
         public string? Last6 { get; set; }
-        public DateTime? ExpirationMonth { get; set; }
-        public DateTime? ExpirationYear { get; set; }
+        public int? ExpirationMonth { get; set; }
+        public int? ExpirationYear { get; set; }
         public bool? UseForSubscription { get; set; }
         public DateTime CreatedOn { get; set; }
         public DateTime UpdatedOn { get; set; }
